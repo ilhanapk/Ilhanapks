@@ -50,7 +50,6 @@
       opacity: 0.6;
     }
 
-    /* Start Screen Styles */
     #startScreen {
       position: absolute;
       z-index: 20;
@@ -106,6 +105,9 @@
   <button id="pauseBtn">⏸</button>
   <div id="watermark">ilhan_xz</div>
 
+  <!-- 🎵 Game Over Sound -->
+  <audio id="gameOverSound" src="https://www.dropbox.com/scl/fi/bcld7jth4j2t1n2zkhvu5/quack_5.mp3?rlkey=4v0813rpqe73f7529nkjsf880&raw=1" preload="auto"></audio>
+
   <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
   <script>
     let scene, camera, renderer;
@@ -151,7 +153,7 @@
       ground.receiveShadow = true;
       scene.add(ground);
 
-      const roadGeometry = new THREE.BoxGeometry(6, 0.1, 500); // Increased road distance
+      const roadGeometry = new THREE.BoxGeometry(6, 0.1, 500);
       const roadMaterial = new THREE.MeshStandardMaterial({ color: 0x222222 });
       road = new THREE.Mesh(roadGeometry, roadMaterial);
       road.position.y = 0;
@@ -241,21 +243,18 @@
 
     function createTree(xOffset, i) {
       const tree = new THREE.Group();
-
       const trunk = new THREE.Mesh(
         new THREE.CylinderGeometry(0.2, 0.2, 2),
         new THREE.MeshStandardMaterial({ color: 0x8b4513 })
       );
       trunk.position.y = 1;
       tree.add(trunk);
-
       const leaves = new THREE.Mesh(
         new THREE.ConeGeometry(1.2 + Math.random() * 0.6, 2 + Math.random() * 1.5),
         new THREE.MeshStandardMaterial({ color: 0x00ff00 })
       );
       leaves.position.y = 3;
       tree.add(leaves);
-
       tree.scale.set(1.3, 1.3, 1.3);
       tree.position.x = xOffset + (Math.random() - 0.5);
       tree.position.z = -i * 10 - Math.random() * 5;
@@ -320,6 +319,12 @@
           car.position.y < 1
         ) {
           gameOver = true;
+
+          // ▶️ Play game over sound
+          const sound = document.getElementById("gameOverSound");
+          sound.currentTime = 0;
+          sound.play();
+
           setTimeout(() => {
             if (confirm("💥 Game Over!\nScore: " + score + "\nPlay again?")) {
               window.location.reload();
@@ -357,4 +362,4 @@
     }
   </script>
 </body>
-</html>
+                            </html>
