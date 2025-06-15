@@ -110,256 +110,260 @@
 
   <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
   <script>
-    let scene, camera, renderer;
-    let car, road;
-    let obstacles = [];
-    let score = 0;
-    let isPaused = false;
-    let gameOver = false;
-    let lane = 0;
-    let touchStartX = 0, touchStartY = 0;
-    let treesLeft = [], treesRight = [];
-    let grasses = [];
-    let isJumping = false, velocityY = 0;
-    let gameStarted = false;
+  let scene, camera, renderer;
+  let car, road;
+  let obstacles = [];
+  let score = 0;
+  let isPaused = false;
+  let gameOver = false;
+  let lane = 0;
+  let touchStartX = 0, touchStartY = 0;
+  let treesLeft = [], treesRight = [];
+  let grasses = [];
+  let isJumping = false, velocityY = 0;
+  let jumpCount = 0;
+  let gameStarted = false;
 
-    init();
-    animate();
+  init();
+  animate();
 
-    function init() {
-      scene = new THREE.Scene();
-      scene.background = new THREE.Color(0x69c0ff); // Sky blue
+  function init() {
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x69c0ff); // Sky blue
 
-      camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-      renderer = new THREE.WebGLRenderer({ antialias: true });
+    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.shadowMap.enabled = true;
+    document.body.appendChild(renderer.domElement);
+
+    const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+    scene.add(ambient);
+
+    const light = new THREE.DirectionalLight(0xffffff, 1);
+    light.position.set(5, 10, 7.5);
+    light.castShadow = true;
+    scene.add(light);
+
+    const ground = new THREE.Mesh(
+      new THREE.PlaneGeometry(1000, 1000),
+      new THREE.MeshStandardMaterial({ color: 0x32cd32 })
+    );
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.y = -0.05;
+    ground.receiveShadow = true;
+    scene.add(ground);
+
+    const roadGeometry = new THREE.BoxGeometry(6, 0.1, 500);
+    const roadMaterial = new THREE.MeshStandardMaterial({ color: 0x222222 });
+    road = new THREE.Mesh(roadGeometry, roadMaterial);
+    road.position.y = 0;
+    road.position.z = -250;
+    road.receiveShadow = true;
+    scene.add(road);
+
+    const carMaterial = new THREE.MeshStandardMaterial({
+      color: 0xff00ff,
+      emissive: 0xff00ff,
+      emissiveIntensity: 0.6
+    });
+    car = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 2), carMaterial);
+    car.position.y = 0.5;
+    car.castShadow = true;
+    scene.add(car);
+
+    camera.position.set(0, 4, 5);
+    camera.lookAt(0, 0, -10);
+
+    for (let i = 0; i < 10; i++) {
+      const obs = new THREE.Mesh(
+        new THREE.BoxGeometry(1, 1, 1),
+        new THREE.MeshStandardMaterial({ color: getRandomColor() })
+      );
+      obs.castShadow = true;
+      obs.receiveShadow = true;
+      resetObstacle(obs);
+      scene.add(obs);
+      obstacles.push(obs);
+    }
+
+    for (let i = 0; i < 30; i++) {
+      const left = createTree(-5, i);
+      const right = createTree(5, i);
+      scene.add(left, right);
+      treesLeft.push(left);
+      treesRight.push(right);
+    }
+
+    for (let i = 0; i < 100; i++) {
+      const grass = createGrass();
+      scene.add(grass);
+      grasses.push(grass);
+    }
+
+    document.getElementById("grassCount").innerText = "Grass: " + grasses.length;
+
+    document.addEventListener('touchstart', e => {
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+    });
+
+    document.addEventListener('touchend', e => {
+      const dx = e.changedTouches[0].clientX - touchStartX;
+      const dy = e.changedTouches[0].clientY - touchStartY;
+
+      if (Math.abs(dx) > Math.abs(dy)) {
+        if (dx > 10 && lane < 1) lane++;
+        else if (dx < -20 && lane > -1) lane--;
+      } else if (dy < -20 && jumpCount < 2) {
+        velocityY = 0.12;
+        isJumping = true;
+        jumpCount++;
+      }
+    });
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
-      renderer.shadowMap.enabled = true;
-      document.body.appendChild(renderer.domElement);
+    });
 
-      const ambient = new THREE.AmbientLight(0xffffff, 0.6);
-      scene.add(ambient);
+    document.getElementById("resSlider").addEventListener("input", (e) => {
+      renderer.setPixelRatio(parseFloat(e.target.value));
+    });
 
-      const light = new THREE.DirectionalLight(0xffffff, 1);
-      light.position.set(5, 10, 7.5);
-      light.castShadow = true;
-      scene.add(light);
+    document.getElementById("pauseBtn").addEventListener("click", () => {
+      isPaused = !isPaused;
+      document.getElementById("pauseBtn").textContent = isPaused ? "▶" : "⏸";
+    });
 
-      const ground = new THREE.Mesh(
-        new THREE.PlaneGeometry(1000, 1000),
-        new THREE.MeshStandardMaterial({ color: 0x32cd32 })
-      );
-      ground.rotation.x = -Math.PI / 2;
-      ground.position.y = -0.05;
-      ground.receiveShadow = true;
-      scene.add(ground);
+    document.getElementById("startBtn").addEventListener("click", () => {
+      document.getElementById("startScreen").style.display = "none";
+      gameStarted = true;
+    });
+  }
 
-      const roadGeometry = new THREE.BoxGeometry(6, 0.1, 500);
-      const roadMaterial = new THREE.MeshStandardMaterial({ color: 0x222222 });
-      road = new THREE.Mesh(roadGeometry, roadMaterial);
-      road.position.y = 0;
-      road.position.z = -250;
-      road.receiveShadow = true;
-      scene.add(road);
+  function createTree(xOffset, i) {
+    const tree = new THREE.Group();
+    const trunk = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.2, 0.2, 2),
+      new THREE.MeshStandardMaterial({ color: 0x8b4513 })
+    );
+    trunk.position.y = 1;
+    tree.add(trunk);
+    const leaves = new THREE.Mesh(
+      new THREE.ConeGeometry(1.2 + Math.random() * 0.6, 2 + Math.random() * 1.5),
+      new THREE.MeshStandardMaterial({ color: 0x00ff00 })
+    );
+    leaves.position.y = 3;
+    tree.add(leaves);
+    tree.scale.set(1.3, 1.3, 1.3);
+    tree.position.x = xOffset + (Math.random() - 0.5);
+    tree.position.z = -i * 10 - Math.random() * 5;
+    return tree;
+  }
 
-      const carMaterial = new THREE.MeshStandardMaterial({
-        color: 0xff00ff,
-        emissive: 0xff00ff,
-        emissiveIntensity: 0.6
-      });
-      car = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 2), carMaterial);
-      car.position.y = 0.5;
-      car.castShadow = true;
-      scene.add(car);
+  function createGrass() {
+    const grass = new THREE.Mesh(
+      new THREE.ConeGeometry(0.1, 0.3, 4),
+      new THREE.MeshStandardMaterial({ color: 0x228B22 })
+    );
+    grass.position.y = 0.15;
+    let x;
+    do {
+      x = Math.random() * 20 - 10;
+    } while (Math.abs(x) < 3);
+    grass.position.x = x;
+    grass.position.z = -Math.random() * 200;
+    return grass;
+  }
 
-      camera.position.set(0, 4, 5);
-      camera.lookAt(0, 0, -10);
+  function resetObstacle(obs) {
+    const lanes = [-2, 0, 2];
+    obs.position.x = lanes[Math.floor(Math.random() * 3)];
+    obs.position.y = 0.5;
+    obs.position.z = -50 - Math.random() * 100;
+    obs.material.color.set(getRandomColor());
+  }
 
-      for (let i = 0; i < 10; i++) {
-        const obs = new THREE.Mesh(
-          new THREE.BoxGeometry(1, 1, 1),
-          new THREE.MeshStandardMaterial({ color: getRandomColor() })
-        );
-        obs.castShadow = true;
-        obs.receiveShadow = true;
+  function getRandomColor() {
+    const colors = [0xff0000, 0xffff00, 0x00ffff, 0x00ff00, 0xff00ff, 0xffa500];
+    return colors[Math.floor(Math.random() * colors.length)];
+  }
+
+  function updateCarPosition() {
+    car.position.x += (lane * 2 - car.position.x) * 0.35;
+
+    if (isJumping) {
+      velocityY -= 0.004;
+      car.position.y += velocityY;
+      car.rotation.x += 0.1;
+
+      if (car.position.y <= 0.5) {
+        car.position.y = 0.5;
+        car.rotation.x = 0;
+        isJumping = false;
+        jumpCount = 0;
+      }
+    } else {
+      car.rotation.x *= 0.8;
+    }
+  }
+
+  function updateObstacles(speed) {
+    for (let obs of obstacles) {
+      obs.position.z += speed;
+      if (obs.position.z > 5) {
         resetObstacle(obs);
-        scene.add(obs);
-        obstacles.push(obs);
+        score++;
+        document.getElementById("score").innerText = "Score: " + score;
       }
+      if (
+        Math.abs(obs.position.z - car.position.z) < 1 &&
+        Math.abs(obs.position.x - car.position.x) < 1 &&
+        car.position.y < 1
+      ) {
+        gameOver = true;
 
-      for (let i = 0; i < 30; i++) {
-        const left = createTree(-5, i);
-        const right = createTree(5, i);
-        scene.add(left, right);
-        treesLeft.push(left);
-        treesRight.push(right);
-      }
+        const sound = document.getElementById("gameOverSound");
+        sound.currentTime = 0;
+        sound.play();
 
-      for (let i = 0; i < 100; i++) {
-        const grass = createGrass();
-        scene.add(grass);
-        grasses.push(grass);
-      }
-
-      document.getElementById("grassCount").innerText = "Grass: " + grasses.length;
-
-      document.addEventListener('touchstart', e => {
-        touchStartX = e.touches[0].clientX;
-        touchStartY = e.touches[0].clientY;
-      });
-
-      document.addEventListener('touchend', e => {
-        const dx = e.changedTouches[0].clientX - touchStartX;
-        const dy = e.changedTouches[0].clientY - touchStartY;
-
-        if (Math.abs(dx) > Math.abs(dy)) {
-          if (dx > 30 && lane < 1) lane++;
-          else if (dx < -30 && lane > -1) lane--;
-        } else if (dy < -30 && !isJumping) {
-          velocityY = 0.18;
-          isJumping = true;
-        }
-      });
-
-      window.addEventListener('resize', () => {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
-      });
-
-      document.getElementById("resSlider").addEventListener("input", (e) => {
-        renderer.setPixelRatio(parseFloat(e.target.value));
-      });
-
-      document.getElementById("pauseBtn").addEventListener("click", () => {
-        isPaused = !isPaused;
-        document.getElementById("pauseBtn").textContent = isPaused ? "▶" : "⏸";
-      });
-
-      document.getElementById("startBtn").addEventListener("click", () => {
-        document.getElementById("startScreen").style.display = "none";
-        gameStarted = true;
-      });
-    }
-
-    function createTree(xOffset, i) {
-      const tree = new THREE.Group();
-      const trunk = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.2, 0.2, 2),
-        new THREE.MeshStandardMaterial({ color: 0x8b4513 })
-      );
-      trunk.position.y = 1;
-      tree.add(trunk);
-      const leaves = new THREE.Mesh(
-        new THREE.ConeGeometry(1.2 + Math.random() * 0.6, 2 + Math.random() * 1.5),
-        new THREE.MeshStandardMaterial({ color: 0x00ff00 })
-      );
-      leaves.position.y = 3;
-      tree.add(leaves);
-      tree.scale.set(1.3, 1.3, 1.3);
-      tree.position.x = xOffset + (Math.random() - 0.5);
-      tree.position.z = -i * 10 - Math.random() * 5;
-      return tree;
-    }
-
-    function createGrass() {
-      const grass = new THREE.Mesh(
-        new THREE.ConeGeometry(0.1, 0.3, 4),
-        new THREE.MeshStandardMaterial({ color: 0x228B22 })
-      );
-      grass.position.y = 0.15;
-      let x;
-      do {
-        x = Math.random() * 20 - 10;
-      } while (Math.abs(x) < 3);
-      grass.position.x = x;
-      grass.position.z = -Math.random() * 200;
-      return grass;
-    }
-
-    function resetObstacle(obs) {
-      const lanes = [-2, 0, 2];
-      obs.position.x = lanes[Math.floor(Math.random() * 3)];
-      obs.position.y = 0.5;
-      obs.position.z = -50 - Math.random() * 100;
-      obs.material.color.set(getRandomColor());
-    }
-
-    function getRandomColor() {
-      const colors = [0xff0000, 0xffff00, 0x00ffff, 0x00ff00, 0xff00ff, 0xffa500];
-      return colors[Math.floor(Math.random() * colors.length)];
-    }
-
-    function updateCarPosition() {
-      car.position.x += (lane * 2 - car.position.x) * 0.2;
-      if (isJumping) {
-        velocityY -= 0.01;
-        car.position.y += velocityY;
-        car.rotation.x += 0.2;
-        if (car.position.y <= 0.5) {
-          car.position.y = 0.5;
-          car.rotation.x = 0;
-          isJumping = false;
-        }
-      } else {
-        car.rotation.x *= 0.9;
+        setTimeout(() => {
+          if (confirm("💥 Game Over!\nScore: " + score + "\nPlay again?")) {
+            window.location.reload();
+          }
+        }, 100);
       }
     }
+  }
 
-    function updateObstacles(speed) {
-      for (let obs of obstacles) {
-        obs.position.z += speed;
-        if (obs.position.z > 5) {
-          resetObstacle(obs);
-          score++;
-          document.getElementById("score").innerText = "Score: " + score;
-        }
-        if (
-          Math.abs(obs.position.z - car.position.z) < 1 &&
-          Math.abs(obs.position.x - car.position.x) < 1 &&
-          car.position.y < 1
-        ) {
-          gameOver = true;
-
-          // ▶️ Play game over sound
-          const sound = document.getElementById("gameOverSound");
-          sound.currentTime = 0;
-          sound.play();
-
-          setTimeout(() => {
-            if (confirm("💥 Game Over!\nScore: " + score + "\nPlay again?")) {
-              window.location.reload();
-            }
-          }, 100);
-        }
+  function moveTrees(speed) {
+    [...treesLeft, ...treesRight, ...grasses].forEach(obj => {
+      obj.position.z += speed;
+      if (obj.position.z > camera.position.z + 10) {
+        obj.position.z = -100 - Math.random() * 100;
       }
-    }
+    });
+  }
 
-    function moveTrees(speed) {
-      [...treesLeft, ...treesRight, ...grasses].forEach(obj => {
-        obj.position.z += speed;
-        if (obj.position.z > camera.position.z + 10) {
-          obj.position.z = -100 - Math.random() * 100;
-        }
-      });
-    }
+  function animate() {
+    requestAnimationFrame(animate);
+    if (!gameStarted || isPaused || gameOver) return;
 
-    function animate() {
-      requestAnimationFrame(animate);
-      if (!gameStarted || isPaused || gameOver) return;
+    const baseSpeed = 0.3;
+    const levelBonus = Math.floor(score / 16) * 0.03;
+    const speed = baseSpeed + score * 0.002 + levelBonus;
 
-      const baseSpeed = 0.3;
-      const levelBonus = Math.floor(score / 10) * 0.05;
-      const speed = baseSpeed + score * 0.002 + levelBonus;
+    road.position.z += speed;
+    if (road.position.z > 0) road.position.z = -250;
 
-      road.position.z += speed;
-      if (road.position.z > 0) road.position.z = -250;
+    updateCarPosition();
+    updateObstacles(speed);
+    moveTrees(speed);
 
-      updateCarPosition();
-      updateObstacles(speed);
-      moveTrees(speed);
-
-      renderer.render(scene, camera);
-    }
-  </script>
+    renderer.render(scene, camera);
+  }
+</script>
 </body>
-                            </html>
+</html>
