@@ -11,7 +11,6 @@
       font-family: sans-serif;
       background: #000;
     }
-
     #score, #settings, #pauseBtn, #highScore {
       position: absolute;
       z-index: 10;
@@ -21,10 +20,8 @@
       background: rgba(0,0,0,0.5);
       border-radius: 10px;
     }
-
     #score { top: 10px; left: 10px; }
     #highScore { top: 50px; left: 10px; }
-
     #pauseBtn {
       top: 10px;
       left: 100px;
@@ -35,16 +32,13 @@
       border-radius: 50%;
       cursor: pointer;
     }
-
     #settings {
       top: 10px;
       right: 10px;
     }
-
     #settings input {
       width: 100px;
     }
-
     #watermark {
       position: absolute;
       bottom: 10px;
@@ -53,7 +47,6 @@
       color: white;
       opacity: 0.6;
     }
-
     #startScreen {
       position: absolute;
       z-index: 20;
@@ -63,7 +56,6 @@
       align-items: center;
       justify-content: center;
     }
-
     #startPanel {
       text-align: center;
       color: white;
@@ -72,12 +64,10 @@
       border-radius: 20px;
       box-shadow: 0 0 20px #00ff00;
     }
-
     #startPanel h1 {
       margin-bottom: 20px;
       font-size: 32px;
     }
-
     #startBtn {
       padding: 12px 24px;
       font-size: 18px;
@@ -88,7 +78,6 @@
       cursor: pointer;
       transition: background 0.2s ease;
     }
-
     #startBtn:hover {
       background: #00ff00;
     }
@@ -96,283 +85,290 @@
 </head>
 <body>
 
-  <div id="startScreen">
-    <div id="startPanel">
-      <h1>Cube Runner by ilhan pk</h1>
-      <button id="startBtn">Start</button>
-    </div>
+<div id="startScreen">
+  <div id="startPanel">
+    <h1>Cube Runner by ilhan pk</h1>
+    <button id="startBtn">Start</button>
   </div>
+</div>
 
-  <div id="score">Score: 0</div>
-  <div id="highScore">High Score: 0</div>
-  <div id="settings">Res: <input type="range" id="resSlider" min="0.2" max="2" step="0.1" value="1"></div>
-  <button id="pauseBtn">⏸</button>
-  <div id="watermark">ilhan_xz</div>
+<div id="score">Score: 0</div>
+<div id="highScore">High Score: 0</div>
+<div id="settings">Res: <input type="range" id="resSlider" min="0.2" max="2" step="0.1" value="1"></div>
+<button id="pauseBtn">⏸</button>
+<div id="watermark">ilhan_xz</div>
 
-  <audio id="gameOverSound" src="https://www.dropbox.com/scl/fi/bcld7jth4j2t1n2zkhvu5/quack_5.mp3?rlkey=4v0813rpqe73f7529nkjsf880&raw=1" preload="auto"></audio>
+<audio id="gameOverSound" src="https://www.dropbox.com/scl/fi/bcld7jth4j2t1n2zkhvu5/quack_5.mp3?rlkey=4v0813rpqe73f7529nkjsf880&raw=1" preload="auto"></audio>
 
-  <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
-  <script>
-    let scene, camera, renderer;
-    let car, road;
-    let obstacles = [];
-    let score = 0;
-    let highScore = parseInt(localStorage.getItem("forestHighScore") || "0");
-    let isPaused = false;
-    let gameOver = false;
-    let lane = 0;
-    let touchStartX = 0, touchStartY = 0;
-    let treesLeft = [], treesRight = [];
-    let grasses = [];
-    let isJumping = false, velocityY = 0;
-    let jumpCount = 0;
-    let gameStarted = false;
+<script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
+<script>
+  let scene, camera, renderer;
+  let car, road;
+  let obstacles = [];
+  let score = 0;
+  let highScore = parseInt(localStorage.getItem("forestHighScore") || "0");
+  let isPaused = false;
+  let gameOver = false;
+  let lane = 0;
+  let touchStartX = 0, touchStartY = 0;
+  let treesLeft = [], treesRight = [];
+  let grasses = [];
+  let isJumping = false, velocityY = 0;
+  let jumpCount = 0;
+  let gameStarted = false;
 
-    document.getElementById("highScore").innerText = "High Score: " + highScore;
+  document.getElementById("highScore").innerText = "High Score: " + highScore;
 
-    init();
-    animate();
+  init();
+  animate();
 
-    function init() {
-      scene = new THREE.Scene();
-      scene.background = new THREE.Color(0x69c0ff);
+  function init() {
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x69c0ff);
 
-      camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-      renderer = new THREE.WebGLRenderer({ antialias: true });
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      renderer.shadowMap.enabled = true;
-      document.body.appendChild(renderer.domElement);
+    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.shadowMap.enabled = true;
+    document.body.appendChild(renderer.domElement);
 
-      const ambient = new THREE.AmbientLight(0xffffff, 0.6);
-      scene.add(ambient);
+    const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+    scene.add(ambient);
 
-      const light = new THREE.DirectionalLight(0xffffff, 1);
-      light.position.set(5, 10, 7.5);
-      light.castShadow = true;
-      scene.add(light);
+    const light = new THREE.DirectionalLight(0xffffff, 1);
+    light.position.set(5, 10, 7.5);
+    light.castShadow = true;
+    scene.add(light);
 
-      const ground = new THREE.Mesh(
-        new THREE.PlaneGeometry(1000, 1000),
-        new THREE.MeshStandardMaterial({ color: 0x32cd32 })
+    const ground = new THREE.Mesh(
+      new THREE.PlaneGeometry(1000, 1000),
+      new THREE.MeshStandardMaterial({ color: 0x32cd32 })
+    );
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.y = -0.05;
+    ground.receiveShadow = true;
+    scene.add(ground);
+
+    const roadGeometry = new THREE.BoxGeometry(6, 0.1, 500);
+    const roadMaterial = new THREE.MeshStandardMaterial({ color: 0x222222 });
+    road = new THREE.Mesh(roadGeometry, roadMaterial);
+    road.position.y = 0;
+    road.position.z = -250;
+    road.receiveShadow = true;
+    scene.add(road);
+
+    const carMaterial = new THREE.MeshStandardMaterial({
+      color: 0xff00ff,
+      emissive: 0xff00ff,
+      emissiveIntensity: 0.6
+    });
+    car = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 2), carMaterial);
+    car.position.y = 0.5;
+    car.castShadow = true;
+    scene.add(car);
+
+    camera.position.set(0, 4, 5);
+    camera.lookAt(0, 0, -10);
+
+    for (let i = 0; i < 10; i++) {
+      const obs = new THREE.Mesh(
+        new THREE.BoxGeometry(1, 1, 1),
+        new THREE.MeshStandardMaterial({ color: getRandomColor() })
       );
-      ground.rotation.x = -Math.PI / 2;
-      ground.position.y = -0.05;
-      ground.receiveShadow = true;
-      scene.add(ground);
+      obs.castShadow = true;
+      obs.receiveShadow = true;
+      resetObstacle(obs);
+      scene.add(obs);
+      obstacles.push(obs);
+    }
 
-      const roadGeometry = new THREE.BoxGeometry(6, 0.1, 500);
-      const roadMaterial = new THREE.MeshStandardMaterial({ color: 0x222222 });
-      road = new THREE.Mesh(roadGeometry, roadMaterial);
-      road.position.y = 0;
-      road.position.z = -250;
-      road.receiveShadow = true;
-      scene.add(road);
+    for (let i = 0; i < 30; i++) {
+      const left = createTree(-5, i);
+      const right = createTree(5, i);
+      scene.add(left, right);
+      treesLeft.push(left);
+      treesRight.push(right);
+    }
 
-      const carMaterial = new THREE.MeshStandardMaterial({
-        color: 0xff00ff,
-        emissive: 0xff00ff,
-        emissiveIntensity: 0.6
-      });
-      car = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 2), carMaterial);
-      car.position.y = 0.5;
-      car.castShadow = true;
-      scene.add(car);
+    for (let i = 0; i < 100; i++) {
+      const grass = createGrass();
+      scene.add(grass);
+      grasses.push(grass);
+    }
 
-      camera.position.set(0, 4, 5);
-      camera.lookAt(0, 0, -10);
+    document.addEventListener('touchstart', e => {
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+    });
 
-      for (let i = 0; i < 10; i++) {
-        const obs = new THREE.Mesh(
-          new THREE.BoxGeometry(1, 1, 1),
-          new THREE.MeshStandardMaterial({ color: getRandomColor() })
-        );
-        obs.castShadow = true;
-        obs.receiveShadow = true;
-        resetObstacle(obs);
-        scene.add(obs);
-        obstacles.push(obs);
-      }
+    document.addEventListener('touchend', e => {
+      const dx = e.changedTouches[0].clientX - touchStartX;
+      const dy = e.changedTouches[0].clientY - touchStartY;
 
-      for (let i = 0; i < 30; i++) {
-        const left = createTree(-5, i);
-        const right = createTree(5, i);
-        scene.add(left, right);
-        treesLeft.push(left);
-        treesRight.push(right);
-      }
-
-      for (let i = 0; i < 100; i++) {
-        const grass = createGrass();
-        scene.add(grass);
-        grasses.push(grass);
-      }
-
-      document.addEventListener('touchstart', e => {
-        touchStartX = e.touches[0].clientX;
-        touchStartY = e.touches[0].clientY;
-      });
-
-      document.addEventListener('touchend', e => {
-        const dx = e.changedTouches[0].clientX - touchStartX;
-        const dy = e.changedTouches[0].clientY - touchStartY;
-
-        if (Math.abs(dx) > Math.abs(dy)) {
-          if (dx > 10 && lane < 1) lane++;
-          else if (dx < -20 && lane > -1) lane--;
-        } else if (dy < -20 && jumpCount < 2) {
+      if (Math.abs(dx) > Math.abs(dy)) {
+        if (dx > 10 && lane < 1) lane++;
+        else if (dx < -20 && lane > -1) lane--;
+      } else {
+        if (dy < -20 && jumpCount < 2) {
+          // Swipe up → jump
           velocityY = 0.12;
           isJumping = true;
           jumpCount++;
-        }
-      });
-
-      window.addEventListener('resize', () => {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
-      });
-
-      document.getElementById("resSlider").addEventListener("input", (e) => {
-        renderer.setPixelRatio(parseFloat(e.target.value));
-      });
-
-      document.getElementById("pauseBtn").addEventListener("click", () => {
-        isPaused = !isPaused;
-        document.getElementById("pauseBtn").textContent = isPaused ? "▶" : "⏸";
-      });
-
-      document.getElementById("startBtn").addEventListener("click", () => {
-        document.getElementById("startScreen").style.display = "none";
-        gameStarted = true;
-      });
-    }
-
-    function createTree(xOffset, i) {
-      const tree = new THREE.Group();
-      const trunk = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.2, 0.2, 2),
-        new THREE.MeshStandardMaterial({ color: 0x8b4513 })
-      );
-      trunk.position.y = 1;
-      tree.add(trunk);
-      const leaves = new THREE.Mesh(
-        new THREE.ConeGeometry(1.2 + Math.random() * 0.6, 2 + Math.random() * 1.5),
-        new THREE.MeshStandardMaterial({ color: 0x00ff00 })
-      );
-      leaves.position.y = 3;
-      tree.add(leaves);
-      tree.scale.set(1.3, 1.3, 1.3);
-      tree.position.x = xOffset + (Math.random() - 0.5);
-      tree.position.z = -i * 10 - Math.random() * 5;
-      return tree;
-    }
-
-    function createGrass() {
-      const grass = new THREE.Mesh(
-        new THREE.ConeGeometry(0.1, 0.3, 4),
-        new THREE.MeshStandardMaterial({ color: 0x228B22 })
-      );
-      grass.position.y = 0.15;
-      let x;
-      do {
-        x = Math.random() * 20 - 10;
-      } while (Math.abs(x) < 3);
-      grass.position.x = x;
-      grass.position.z = -Math.random() * 200;
-      return grass;
-    }
-
-    function resetObstacle(obs) {
-      const lanes = [-2, 0, 2];
-      obs.position.x = lanes[Math.floor(Math.random() * 3)];
-      obs.position.y = 0.5;
-      obs.position.z = -50 - Math.random() * 100;
-      obs.material.color.set(getRandomColor());
-    }
-
-    function getRandomColor() {
-      const colors = [0xff0000, 0xffff00, 0x00ffff, 0x00ff00, 0xff00ff, 0xffa500];
-      return colors[Math.floor(Math.random() * colors.length)];
-    }
-
-    function updateCarPosition() {
-      car.position.x += (lane * 2 - car.position.x) * 0.35;
-
-      if (isJumping) {
-        velocityY -= 0.004;
-        car.position.y += velocityY;
-        car.rotation.x += 0.1;
-
-        if (car.position.y <= 0.5) {
-          car.position.y = 0.5;
-          car.rotation.x = 0;
-          isJumping = false;
-          jumpCount = 0;
-        }
-      } else {
-        car.rotation.x *= 0.8;
-      }
-    }
-
-    function updateObstacles(speed) {
-      for (let obs of obstacles) {
-        obs.position.z += speed;
-        if (obs.position.z > 5) {
-          resetObstacle(obs);
-          score++;
-          document.getElementById("score").innerText = "Score: " + score;
-        }
-        if (
-          Math.abs(obs.position.z - car.position.z) < 1 &&
-          Math.abs(obs.position.x - car.position.x) < 1 &&
-          car.position.y < 1
-        ) {
-          gameOver = true;
-
-          const sound = document.getElementById("gameOverSound");
-          sound.currentTime = 0;
-          sound.play();
-
-          setTimeout(() => {
-            if (score > highScore) {
-              highScore = score;
-              localStorage.setItem("forestHighScore", highScore);
-            }
-
-            if (confirm(`💥 Game Over!\nScore: ${score}\nHigh Score: ${highScore}\n\nPlay again?`)) {
-              window.location.reload();
-            }
-          }, 100);
+        } else if (dy > 20 && isJumping && car.position.y > 0.6) {
+          // Swipe down while in air → fast fall
+          velocityY = -0.2;
         }
       }
+    });
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    document.getElementById("resSlider").addEventListener("input", (e) => {
+      renderer.setPixelRatio(parseFloat(e.target.value));
+    });
+
+    document.getElementById("pauseBtn").addEventListener("click", () => {
+      isPaused = !isPaused;
+      document.getElementById("pauseBtn").textContent = isPaused ? "▶" : "⏸";
+    });
+
+    document.getElementById("startBtn").addEventListener("click", () => {
+      document.getElementById("startScreen").style.display = "none";
+      gameStarted = true;
+    });
+  }
+
+  function createTree(xOffset, i) {
+    const tree = new THREE.Group();
+    const trunk = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.2, 0.2, 2),
+      new THREE.MeshStandardMaterial({ color: 0x8b4513 })
+    );
+    trunk.position.y = 1;
+    tree.add(trunk);
+    const leaves = new THREE.Mesh(
+      new THREE.ConeGeometry(1.2 + Math.random() * 0.6, 2 + Math.random() * 1.5),
+      new THREE.MeshStandardMaterial({ color: 0x00ff00 })
+    );
+    leaves.position.y = 3;
+    tree.add(leaves);
+    tree.scale.set(1.3, 1.3, 1.3);
+    tree.position.x = xOffset + (Math.random() - 0.5);
+    tree.position.z = -i * 10 - Math.random() * 5;
+    return tree;
+  }
+
+  function createGrass() {
+    const grass = new THREE.Mesh(
+      new THREE.ConeGeometry(0.1, 0.3, 4),
+      new THREE.MeshStandardMaterial({ color: 0x228B22 })
+    );
+    grass.position.y = 0.15;
+    let x;
+    do {
+      x = Math.random() * 20 - 10;
+    } while (Math.abs(x) < 3);
+    grass.position.x = x;
+    grass.position.z = -Math.random() * 200;
+    return grass;
+  }
+
+  function resetObstacle(obs) {
+    const lanes = [-2, 0, 2];
+    obs.position.x = lanes[Math.floor(Math.random() * 3)];
+    obs.position.y = 0.5;
+    obs.position.z = -50 - Math.random() * 100;
+    obs.material.color.set(getRandomColor());
+  }
+
+  function getRandomColor() {
+    const colors = [0xff0000, 0xffff00, 0x00ffff, 0x00ff00, 0xff00ff, 0xffa500];
+    return colors[Math.floor(Math.random() * colors.length)];
+  }
+
+  function updateCarPosition() {
+    car.position.x += (lane * 2 - car.position.x) * 0.35;
+
+    if (isJumping) {
+      velocityY -= 0.004;
+      velocityY = Math.max(velocityY, -0.3); // Limit max fall speed
+      car.position.y += velocityY;
+      car.rotation.x += 0.1;
+
+      if (car.position.y <= 0.5) {
+        car.position.y = 0.5;
+        car.rotation.x = 0;
+        isJumping = false;
+        jumpCount = 0;
+      }
+    } else {
+      car.rotation.x *= 0.8;
     }
+  }
 
-    function moveTrees(speed) {
-      [...treesLeft, ...treesRight, ...grasses].forEach(obj => {
-        obj.position.z += speed;
-        if (obj.position.z > camera.position.z + 10) {
-          obj.position.z = -100 - Math.random() * 100;
-        }
-      });
+  function updateObstacles(speed) {
+    for (let obs of obstacles) {
+      obs.position.z += speed;
+      if (obs.position.z > 5) {
+        resetObstacle(obs);
+        score++;
+        document.getElementById("score").innerText = "Score: " + score;
+      }
+      if (
+        Math.abs(obs.position.z - car.position.z) < 1 &&
+        Math.abs(obs.position.x - car.position.x) < 1 &&
+        car.position.y < 1
+      ) {
+        gameOver = true;
+
+        const sound = document.getElementById("gameOverSound");
+        sound.currentTime = 0;
+        sound.play();
+
+        setTimeout(() => {
+          if (score > highScore) {
+            highScore = score;
+            localStorage.setItem("forestHighScore", highScore);
+          }
+
+          if (confirm(`💥 Game Over!\nScore: ${score}\nHigh Score: ${highScore}\n\nPlay again?`)) {
+            window.location.reload();
+          }
+        }, 100);
+      }
     }
+  }
 
-    function animate() {
-      requestAnimationFrame(animate);
-      if (!gameStarted || isPaused || gameOver) return;
+  function moveTrees(speed) {
+    [...treesLeft, ...treesRight, ...grasses].forEach(obj => {
+      obj.position.z += speed;
+      if (obj.position.z > camera.position.z + 10) {
+        obj.position.z = -100 - Math.random() * 100;
+      }
+    });
+  }
 
-      const baseSpeed = 0.3;
-      const levelBonus = Math.floor(score / 16) * 0.03;
-      const speed = baseSpeed + score * 0.002 + levelBonus;
+  function animate() {
+    requestAnimationFrame(animate);
+    if (!gameStarted || isPaused || gameOver) return;
 
-      road.position.z += speed;
-      if (road.position.z > 0) road.position.z = -250;
+    const baseSpeed = 0.3;
+    const levelBonus = Math.floor(score / 16) * 0.03;
+    const speed = baseSpeed + score * 0.002 + levelBonus;
 
-      updateCarPosition();
-      updateObstacles(speed);
-      moveTrees(speed);
+    road.position.z += speed;
+    if (road.position.z > 0) road.position.z = -250;
 
-      renderer.render(scene, camera);
-    }
-  </script>
+    updateCarPosition();
+    updateObstacles(speed);
+    moveTrees(speed);
+
+    renderer.render(scene, camera);
+  }
+</script>
 </body>
-</html>
+  </html>
