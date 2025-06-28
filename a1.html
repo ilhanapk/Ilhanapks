@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Colour Test by ilhan pk</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      margin: 0;
+      background: #121212;
+      color: white;
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+    h1 {
+      margin: 10px 0;
+      color: #00e676;
+    }
+    #info {
+      margin-bottom: 15px;
+      font-size: 18px;
+      text-align: center;
+    }
+    #grid {
+      display: grid;
+      gap: 6px;
+    }
+    .cell {
+      border-radius: 8px;
+      transition: 0.2s;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎨 Colour Test by ilhan pk</h1>
+  <div id="info">
+    Mode: <span id="mode">Easy</span><br>
+    Score: <span id="score">0</span> | High Score: <span id="highscore">0</span><br>
+    Time: <span id="time">0</span>s
+  </div>
+  <div id="grid"></div>
+
+  <audio id="coinSound" src="data:audio/mp3;base64,//uQxAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAACcQCAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA=" preload="auto"></audio>
+
+  <script>
+    const grid = document.getElementById("grid");
+    const scoreSpan = document.getElementById("score");
+    const highSpan = document.getElementById("highscore");
+    const modeSpan = document.getElementById("mode");
+    const timeSpan = document.getElementById("time");
+    const coinSound = document.getElementById("coinSound");
+
+    let score = 0;
+    let highScore = parseInt(localStorage.getItem("colourTestHighScore") || "0");
+    highSpan.textContent = highScore;
+
+    let correctIndex = 0;
+    const startTime = Date.now();
+
+    function getDifficultyByTime(seconds) {
+      const size = Math.min(3 + Math.floor(seconds / 10), 7); // grid size from 3 to 7
+      const diff = Math.max(5, 60 - seconds * 2); // color diff shrinks fast
+      let name = "Easy";
+      if (diff < 40) name = "Medium";
+      if (diff < 25) name = "Hard";
+      if (diff <= 10) name = "Extreme";
+      return { size, diff, name };
+    }
+
+    function randomColor(max = 200) {
+      const r = Math.floor(Math.random() * max);
+      const g = Math.floor(Math.random() * max);
+      const b = Math.floor(Math.random() * max);
+      return { r, g, b };
+    }
+
+    function updateTime() {
+      const seconds = Math.floor((Date.now() - startTime) / 1000);
+      timeSpan.textContent = seconds;
+    }
+
+    function createGrid() {
+      updateTime();
+      const seconds = Math.floor((Date.now() - startTime) / 1000);
+      const { size, diff, name } = getDifficultyByTime(seconds);
+      modeSpan.textContent = name;
+      scoreSpan.textContent = score;
+      grid.innerHTML = "";
+      grid.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
+
+      const base = randomColor();
+      const odd = {
+        r: Math.min(base.r + diff, 255),
+        g: Math.min(base.g + diff, 255),
+        b: Math.min(base.b + diff, 255)
+      };
+
+      correctIndex = Math.floor(Math.random() * size * size);
+
+      for (let i = 0; i < size * size; i++) {
+        const cell = document.createElement("div");
+        cell.className = "cell";
+        const color = i === correctIndex ? odd : base;
+        cell.style.backgroundColor = `rgb(${color.r}, ${color.g}, ${color.b})`;
+        cell.style.width = `${320 / size}px`;
+        cell.style.height = `${320 / size}px`;
+
+        cell.addEventListener("click", () => {
+          if (i === correctIndex) {
+            score++;
+            if (score > highScore) {
+              highScore = score;
+              localStorage.setItem("colourTestHighScore", highScore);
+              highSpan.textContent = highScore;
+            }
+            coinSound.currentTime = 0;
+            coinSound.play();
+            createGrid();
+          } else {
+            cell.style.opacity = "0.5";
+            setTimeout(() => (cell.style.opacity = "1"), 200);
+          }
+        });
+
+        grid.appendChild(cell);
+      }
+    }
+
+    setInterval(updateTime, 1000);
+    createGrid();
+  </script>
+</body>
+</html>
