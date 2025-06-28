@@ -4,6 +4,11 @@
       "name": "Cube Running",
       "thumbnail": "https://i.postimg.cc/65M2k3y3/file-000000003c6061f7af914bb051df3b1e.png",
       "link": "cube.html"
+    },
+    {
+      "name": "tic tac toe",
+      "thumbnail": "https://i.postimg.cc/CxHy7BLY/Picsart-25-06-28-19-28-23-780.jpg",
+      "link": "tic.html"
     }
   ]
 }
