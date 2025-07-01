@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>3D Car Game by Ilhan PK</title>
+  <style>
+    body { margin: 0; overflow: hidden; background: #000; }
+    #ui {
+      position: absolute;
+      bottom: 20px;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      z-index: 10;
+    }
+    button {
+      font-size: 20px;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 10px;
+      background: red;
+      color: white;
+      box-shadow: 0 0 10px #000;
+    }
+  </style>
+</head>
+<body>
+  <div id="ui">
+    <button onclick="moveLeft()">⬅️ Left</button>
+    <button onclick="moveRight()">➡️ Right</button>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/examples/js/loaders/GLTFLoader.js"></script>
+
+  <script>
+    // Scene setup
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x87CEEB);
+
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+    camera.position.set(0, 5, 10);
+    camera.lookAt(0, 0, 0);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.shadowMap.enabled = true;
+    document.body.appendChild(renderer.domElement);
+
+    // Lighting
+    const light = new THREE.DirectionalLight(0xffffff, 1);
+    light.position.set(10, 20, 10);
+    light.castShadow = true;
+    scene.add(light);
+
+    scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+
+    // Ground
+    const ground = new THREE.Mesh(
+      new THREE.PlaneGeometry(100, 100),
+      new THREE.MeshLambertMaterial({ color: 0x228B22 })
+    );
+    ground.rotation.x = -Math.PI / 2;
+    ground.receiveShadow = true;
+    scene.add(ground);
+
+    // Placeholder box while loading
+    const box = new THREE.Mesh(
+      new THREE.BoxGeometry(2, 1, 4),
+      new THREE.MeshLambertMaterial({ color: 0xff0000 })
+    );
+    box.position.y = 0.5;
+    box.castShadow = true;
+    scene.add(box);
+
+    // Load real car model
+    let car;
+    const loader = new THREE.GLTFLoader();
+    loader.load(
+      'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Car/glTF/Car.gltf',
+      function(gltf) {
+        car = gltf.scene;
+        car.scale.set(0.4, 0.4, 0.4);
+        car.position.set(0, 0, 0);
+        car.traverse(obj => { if (obj.isMesh) obj.castShadow = true; });
+        scene.remove(box); // remove placeholder
+        scene.add(car);
+      },
+      undefined,
+      error => console.error(error)
+    );
+
+    // Control
+    function moveLeft() {
+      if (car) car.position.x -= 1;
+      else box.position.x -= 1;
+    }
+
+    function moveRight() {
+      if (car) car.position.x += 1;
+      else box.position.x += 1;
+    }
+
+    // Animate
+    function animate() {
+      requestAnimationFrame(animate);
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    // Responsive
+    window.addEventListener("resize", () => {
+      camera.aspect = window.innerWidth/window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  </script>
+</body>
+</html>
