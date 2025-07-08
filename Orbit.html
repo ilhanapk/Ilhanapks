@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Orbit Model Drawing by Ilhan Pk</title>
+  <style>
+    :root {
+      --main-color: #ff6b00;
+      --bg-color: #111;
+      --card-color: #1c1c1c;
+      --text-color: #f0f0f0;
+      --border-color: #333;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", sans-serif;
+      background: var(--bg-color);
+      color: var(--text-color);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px;
+    }
+
+    h1 {
+      color: var(--main-color);
+      margin-bottom: 10px;
+      text-align: center;
+      font-size: 24px;
+    }
+
+    .card {
+      background: var(--card-color);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+      max-width: 95%;
+      width: 500px;
+    }
+
+    .input-box {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 15px;
+    }
+
+    input {
+      padding: 8px;
+      font-size: 16px;
+      width: 120px;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      background: #222;
+      color: white;
+      text-align: center;
+    }
+
+    button {
+      padding: 10px 16px;
+      font-size: 15px;
+      background: var(--main-color);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    button:hover {
+      background: #e65a00;
+    }
+
+    canvas {
+      border: 1px solid var(--border-color);
+      background: black;
+      border-radius: 8px;
+      margin-top: 10px;
+      width: 100%;
+      height: auto;
+    }
+
+    .footer {
+      margin-top: 20px;
+      font-size: 14px;
+      color: #888;
+      text-align: center;
+    }
+
+    .insta-button {
+      margin-top: 10px;
+      text-align: center;
+    }
+
+    .insta-button a {
+      display: inline-block;
+      text-decoration: none;
+      background: #ff6b00;
+      color: white;
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-weight: bold;
+    }
+
+    .insta-button a:hover {
+      background: #e65a00;
+    }
+  </style>
+</head>
+<body>
+  <h1>Orbit Model Drawing by Ilhan Pk</h1>
+
+  <div class="card">
+    <div class="input-box">
+      <input type="text" id="symbol" placeholder="Symbol (e.g. H)">
+      <input type="number" id="mass" placeholder="Mass (e.g. 3)">
+      <input type="number" id="protons" placeholder="Protons (e.g. 1)">
+    </div>
+
+    <div class="input-box">
+      <button onclick="drawModel()">Draw</button>
+      <button onclick="downloadCanvas()">Download JPG</button>
+    </div>
+
+    <canvas id="canvas" width="500" height="500"></canvas>
+
+    <div class="insta-button">
+      <a href="https://www.instagram.com/ilhan_xz?igsh=YzljYTk1ODg3Zg==" target="_blank">View My Instagram</a>
+    </div>
+  </div>
+
+  <div class="footer">© 2025 Ilhan Pk</div>
+
+  <script>
+    function drawModel() {
+      const symbol = document.getElementById("symbol").value || "H";
+      const mass = parseInt(document.getElementById("mass").value);
+      const protons = parseInt(document.getElementById("protons").value);
+      const neutrons = mass - protons;
+
+      const canvas = document.getElementById("canvas");
+      const ctx = canvas.getContext("2d");
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+
+      const shellLimits = [2, 8, 18, 32];
+      const shellNames = ['K', 'L', 'M', 'N'];
+      let electronsLeft = protons;
+      const shells = [];
+
+      for (let i = 0; i < shellLimits.length && electronsLeft > 0; i++) {
+        const e = Math.min(shellLimits[i], electronsLeft);
+        shells.push(e);
+        electronsLeft -= e;
+      }
+
+      const electronConfig = shells.join(',');
+
+      // Fill background
+      ctx.fillStyle = "black";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Atomic notation (e.g. ³H / ¹)
+      ctx.fillStyle = "#fff";
+      ctx.font = "bold 26px monospace";
+      ctx.textAlign = "center";
+      ctx.fillText(`${mass}${symbol}`, centerX, 40);
+      ctx.font = "bold 20px monospace";
+      ctx.fillText(`${protons}`, centerX, 65);
+
+      // Nucleus
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, 50, 0, 2 * Math.PI);
+      ctx.strokeStyle = "#fff";
+      ctx.stroke();
+
+      ctx.fillStyle = "#fff";
+      ctx.font = "16px sans-serif";
+      ctx.fillText("p: " + protons, centerX, centerY - 20);
+      ctx.fillText("n: " + neutrons, centerX, centerY);
+
+      // Watermark
+      ctx.fillStyle = "#ff6b00";
+      ctx.font = "bold 14px sans-serif";
+      ctx.fillText("ilhan pk", centerX, centerY + 40);
+
+      // Electron config text
+      ctx.font = "14px sans-serif";
+      ctx.fillText("" + electronConfig, centerX, centerY + 60);
+
+      // Shells and electrons
+      for (let i = 0; i < shells.length; i++) {
+        const shellRadius = 80 + i * 50;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, shellRadius, 0, 2 * Math.PI);
+        ctx.strokeStyle = "#888";
+        ctx.stroke();
+
+        ctx.fillStyle = "#ff6b00";
+        ctx.fillText(shellNames[i], centerX + shellRadius + 15, centerY);
+
+        const eCount = shells[i];
+        for (let j = 0; j < eCount; j++) {
+          const angle = (2 * Math.PI / eCount) * j;
+          const ex = centerX + shellRadius * Math.cos(angle);
+          const ey = centerY + shellRadius * Math.sin(angle);
+          ctx.beginPath();
+          ctx.arc(ex, ey, 6, 0, 2 * Math.PI);
+          ctx.fillStyle = "#fff";
+          ctx.fill();
+        }
+      }
+    }
+
+    function downloadCanvas() {
+      const canvas = document.getElementById("canvas");
+      const link = document.createElement("a");
+      link.download = "orbit_model_ilhanpk.jpg";
+      link.href = canvas.toDataURL("image/jpeg", 1.0);
+      link.click();
+    }
+
+    drawModel(); // Default
+  </script>
+</body>
+</html> </body>  
+</html>  >  
+</html>  
